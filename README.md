@@ -7,9 +7,13 @@ Building
 ========
 
 Debian
+
     $ make deb
+
 The package will appear in ..
 
 Redhat/Fedora
+
     $ make rpm
+
 The package will appear in ./rpmbuild/noarch/
