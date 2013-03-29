@@ -1,7 +1,7 @@
 #!/usr/bin/make
 
 VERSION := $(shell cat VERSION)
-RELEASE := $(shell git describe --abbrev=4 HEAD 2>/dev/null)
+RELEASE := $(shell git describe --abbrev=4 HEAD 2>/dev/null | tr '-' '_')
 
 clean:
 	rm -rf debian
