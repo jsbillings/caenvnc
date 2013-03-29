@@ -1,8 +1,7 @@
 #!/usr/bin/make
 
 VERSION := $(shell cat VERSION)
-GIT_DATE := $(shell git log -n 1 --format="%ai")
-DATE := $(date --utc --date="$(GIT_DATE)" +%Y%m%d%H%M)
+RELEASE := $(shell git describe --abbrev=4 HEAD 2>/dev/null)
 
 clean:
 	rm -rf debian
@@ -18,7 +17,8 @@ srpm:
 	mkdir -p rpmbuild/SOURCES rpmbuild/SPECS
 	cp caenvnc caenvnchelper rpmbuild/SOURCES
 	cp packaging/redhat/caenvnc.spec rpmbuild/SPECS
-	rpmbuild --define 'version $(VERSION)' \
+	rpmbuild --define "caenvnc_version $(VERSION)" \
+	--define "caenvnc_release $(RELEASE)" \
 	--define "_topdir %(pwd)/rpmbuild" \
 	--define "_builddir %{_topdir}" \
 	--define "_rpmdir %{_topdir}" \
@@ -30,7 +30,8 @@ rpm:
 	mkdir -p rpmbuild/SOURCES rpmbuild/SPECS
 	cp caenvnc caenvnchelper rpmbuild/SOURCES
 	cp packaging/redhat/caenvnc.spec rpmbuild/SPECS
-	rpmbuild --define 'version $(VERSION)' \
+	rpmbuild --define "caenvnc_version $(VERSION)" \
+	--define "caenvnc_release $(RELEASE)" \
 	--define "_topdir %(pwd)/rpmbuild" \
 	--define "_builddir %{_topdir}" \
 	--define "_rpmdir %{_topdir}" \

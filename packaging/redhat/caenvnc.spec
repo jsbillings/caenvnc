@@ -1,6 +1,6 @@
 Name:           caenvnc
-Version:        1.0
-Release:        1%{?dist}
+Version:        %{caenvnc_version} 
+Release:        %{caenvnc_release}%{?dist}
 Summary:        CAEN VNC client
 
 Group:          Applications/Internet
