@@ -1,0 +1,12 @@
+Source: caenvnc
+Maintainer: Jonathan Billings <jsbillin@umich.edu>
+Section: misc
+Priority: optional
+Standards-Version: 3.9.2
+Build-Depends: debhelper (>= 8)
+
+Package: caenvnc
+Architecture: all
+Depends: ${shlibs:Depends}, ${misc:Depends}, tk, expect, openssh-client, vinagre
+Description: CAEN VNC Client
+ Sets up an SSH tunnel and runs the VPN client
