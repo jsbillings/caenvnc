@@ -7,7 +7,8 @@ clean:
 	rm -rf debian
 	rm -rf rpmbuild
 
-deb:	cp -r packaging/debian ./
+deb:	
+	cp -r packaging/debian ./
 	chmod 755 debian/rules
 	fakeroot debian/rules clean
 	fakeroot debian/rules

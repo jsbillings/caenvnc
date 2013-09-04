@@ -5,3 +5,4 @@
 override_dh_auto_install:
 	install -D -m 755 caenvnc $$(pwd)/debian/caenvnc/usr/bin/caenvnc
 	install -D -m 755 caenvnchelper $$(pwd)/debian/caenvnc/usr/bin/caenvnchelper
+	install -D -m 755 caenvnc.desktop $$(pwd)/debian/caenvnc/usr/share/applications/caenvnc.desktop
