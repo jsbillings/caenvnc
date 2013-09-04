@@ -7,6 +7,6 @@ Build-Depends: debhelper (>= 8)
 
 Package: caenvnc
 Architecture: all
-Depends: ${shlibs:Depends}, ${misc:Depends}, tk, expect, openssh-client, vinagre
+Depends: ${shlibs:Depends}, ${misc:Depends}, tk, expect, openssh-client, vinagre, netcat-tradtional
 Description: CAEN VNC Client
  Sets up an SSH tunnel and runs the VPN client
