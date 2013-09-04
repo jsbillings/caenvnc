@@ -1,29 +1,57 @@
-#!/usr/bin/wish
+package provide app-sshnew 1.0
+package require registry
+package require Suspect
+suspect::Import
+
 # 03/01/2008 - 1.0 - Limited Release [jhufnage]
 # 04/08/2008 - 1.1 - Added versioning information to the title bar [jhufnage]
 # 11/16/2009 - 1.2 - Enabled varable resolution [jhufnage]
-# 2012/04/16 - 1.3 - Modified for RPM packaging
-package require Expect
+# 12/16/2009 - 2.0 - Wrapped using TclKit/StarKit
+# 05/17/2012 - 2.3 - Updated plink and added -batch command line option to plink
+# 09/19/2012 - 2.4 - Updated plink to portable plink 0.62 which properly supports "-ssh <hostname>"
+#					 and query WMI for DEP support
+# 01/14/2013 - 2.5 - Updated to Suspect (removed expect dependencies) for Windows 8 compatability
+#					 Removed DEP check since Expect is not used
+# 08/30/2013 - 3.0 - Added support for MToken and additional ECAD hosts
 
-wm title . "CAEN VNC v1.2"
+wm title . "CAEN VNC v3.0"
 wm iconname . "CAENVNC"
 wm resizable . 0 0
 
 set URL "http://www.engin.umich.edu/caen/connect/vnc.html"
 set v_currentresh "[expr {[winfo screenwidth .]}]"
 set v_currentresv "[expr {[winfo screenheight .]}]"
-#set v_username "$::env(USERNAME)"
-set v_username "$::env(USER)"
-
+set v_username "$::env(USERNAME)"
 set v_password ""
+set v_token ""
 set v_hostname "vnc.engin.umich.edu"
+set scriptdir [file dirname [info script]]
+
+# Copy the executables to the users TEMP directory since Windows can't exec from VFS
+set tempdir [file join $::env(TEMP) caenvnc]
+if [file isfile $tempdir] {file delete -force $tempdir}
+file mkdir $tempdir
+
+catch {file copy -force ${scriptdir}/plink.exe ${tempdir}/plink.exe}
+catch {file copy -force ${scriptdir}/vncviewer.exe ${tempdir}/vncviewer.exe}
+catch {file copy -force ${scriptdir}/sshhostkeys ${tempdir}/sshhostkeys}
+
+#####################################################################
+# Configure VNCViewer default values
+#####################################################################
+if [ catch {registry get HKEY_CURRENT_USER\\Software\\RealVNC\\VNCViewer4 "AutoSelect" } ] {
+	registry set HKEY_CURRENT_USER\\Software\\RealVNC\\VNCViewer4 "AutoSelect" 1 dword
+}
+if [ catch {registry get HKEY_CURRENT_USER\\Software\\RealVNC\\VNCViewer4 "FullColour" } ]  {
+	registry set HKEY_CURRENT_USER\\Software\\RealVNC\\VNCViewer4 "FullColour" 1 dword
+}
 
 #####################################################################
 # Configure Hostname label and text box
 #####################################################################
 frame  .hostname -bd 2
 label  .hostname.label -text Hostname: -width 10 -anchor w
-ttk::combobox .hostname.combobox -textvariable v_hostname -values "vnc.engin.umich.edu"
+ttk::combobox .hostname.combobox -textvariable v_hostname -values "vnc.engin.umich.edu vnc-twofactor.engin.umich.edu vnc-oncampus.engin.umich.edu" 
 pack   .hostname.label -side left
 pack   .hostname.combobox  -side left
 
@@ -48,6 +76,16 @@ pack   .password.label -side left
 pack   .password.entry -side left
 
 #####################################################################
+# Configure MToken label and text box
+#####################################################################
+frame  .token -bd 2
+label  .token.label -text MToken: -width 10 -anchor w
+entry  .token.entry -relief sunken
+.token.entry config -textvariable v_token
+pack   .token.label -side left
+pack   .token.entry -side left
+
+#####################################################################
 # Configure Resolution label and list box
 #####################################################################
 frame  .screenres -bd 2
@@ -66,13 +104,13 @@ pack   .screenres.comboboxv  -side left
 frame	.status -bd 2
 label	.status.label
 pack	.status.label -side left
-.status.label config -text "Awaiting credentials..."
+.status.label config -text "Awaiting credentials..." 
 
 #####################################################################
 # Configure Buttons
 #####################################################################
 frame	.buttons -bd 2
-button	.buttons.ok -text "Connect" -borderwidth 1m -command "showScreen \$v_hostname \$v_username \$v_password"
+button	.buttons.ok -text "Connect" -borderwidth 1m -command "showScreen \$v_hostname \$v_username \$v_password \$v_token"
 button	.buttons.dismiss -text "Cancel" -command "destroy ."
 button	.buttons.help -text "Help" -command "exec [auto_execok start] {$URL}"
 bind	. <Return> ".buttons.ok invoke"
@@ -84,6 +122,18 @@ pack	.buttons -side bottom -fill x -pady 2m
 # Pack everything into the window
 #####################################################################
 pack	.hostname .username .password .screenres .status .buttons -fill x
+##
+#
+##
+proc showMToken {} {
+global v_hostname
+	if {[string match *twofactor* $v_hostname]} {
+		pack .token -after .password -fill x
+	} else {
+		pack forget .token
+	}
+}
+bind . <<ComboboxSelected>> {showMToken}
 
 #####################################################################
 # Focus and Raise window
@@ -98,11 +148,15 @@ wm geometry . +$wx+$wy
 #####################################################################
 # Let's run it...
 #####################################################################
-proc showScreen {ss_host ss_user ss_pass} {
+proc showScreen {ss_host ss_user ss_pass ss_token} {
+
 global v_currentresh
 global v_currentresv
 global env
+global scriptdir
+global tempdir
 
+# Check for valid resolutions before continuing
 if { [string is integer -strict $v_currentresh] == 0 } {
 	.status.label config -text "Fix horizontal resolution!"
 	focus .screenres.comboboxh
@@ -114,56 +168,82 @@ if { [string is integer -strict $v_currentresv] == 0 } {
 	return
 }
 
-
-#set port $resolution($v_currentres)
 .buttons.ok config -state disabled
 
+# Verify files exist (AV doesn't delete)
+if { [file exists ${tempdir}/plink.exe] == 0 } {
+	showErr "plink.exe not found in %TEMP%"
+	return
+}
+if { [file exists ${tempdir}/vncviewer.exe] == 0 } {
+	showErr "vncviewer.exe not found in %TEMP%"
+	return
+}
+if { [file exists $::env(WINDIR)/SYSTEM32/netstat.exe] == 0 } {
+	showErr "netstat.exe not found in $::env(WINDIR)/SYSTEM32"
+	return
+}
+
 set env(CAENVNCSIZE) ${v_currentresh}x${v_currentresv}
-set env(CVNCSIZE) ${v_currentresh}x${v_currentresv}
+set rport   5984
+set lport	5984
 
-set port   85
-
-set fs " "
+# Screen resolution code
+set fs "FullScreen=0"
 if { [string compare "$v_currentresh" "[expr {[winfo screenwidth .]}]"] == 0 } { 
    if { [string compare "$v_currentresv" "[expr {[winfo screenheight .]}]"] == 0 } {
-	set fs "-FullScreen"
+	set fs "FullScreen=1"
    }
 }
-set timeout -1
 
+# Localport (lport) needs to be free.
+# Run netstat and increment through ports until free port found
+set nsr [exec "$::env(WINDIR)/SYSTEM32/netstat.exe" -an]
+while {[lsearch -regexp $nsr $lport] != -1} { set lport [expr {$lport + 1}] }
+
+# Show the user we're contacting the host
 .status.label config -text ""
-.status.label config -text "Connecting $ss_host"
+.status.label config -text [string range "Contacting $ss_host" 0 35]
 
+# Spawn and open a channel to plink
+set channel [Spawn ${tempdir}/plink.exe -L $lport:localhost:$rport -ssh $ss_host -C "echo hello\;cat" 2>@1]
+set pid [CVar $channel pid] 
 
-
-
-#exp_spawn ssh -L $port:localhost:$port $ss_user@$ss_host "echo hello\;cat"
-
-exp_spawn caenvnchelper -c $ss_host 
-
-expect {
-	"Are you sure*"  	{exp_send "yes\r"}
-	"$ss_user*" 		{exp_send "$ss_pass\r"}
-	"hello*"  			{wm withdraw .;exp_wait; destroy .;exp_close;exit}
-       }
-expect {
-	"$ss_user*" 		{exp_send "$ss_pass\r"}
-	"hello*"  			{wm withdraw .;exp_wait; destroy .;exp_close;exit}
-       }
-expect {
-	"Permission*" 		{exp_close; showErr}
-	"hello*"  			{wm withdraw .;exp_wait; destroy .;exp_close;exit}
-       }
-	   
+# Plink won't output errors to stdout so we have to work around 'hostname not found' and 'bad password' errors
+set pwcount 0
+set done 0
+while { $done == 0 } {
+	Expect $channel -regexp -onEOF showEOF -onTIMEOUT showTimeout { 
+		"Host"		{showErr "Hostname not found!"; set done 1}
+		"Store"  	{Send $channel "y\r" }
+		"login"  	{Send $channel "$ss_user \r"}
+		"MToken"	{Send $channel "$ss_token \r"}
+		"Password"  {Send $channel "$ss_pass \r"; set pwcount [expr {$pwcount + 1}]}
+		"password"  {Send $channel "$ss_pass \r"; set pwcount [expr {$pwcount + 1}]}
+		"hello"  	{wm withdraw .;exec  ${tempdir}/vncviewer.exe $fs FullColour=1 localhost::$lport; destroy .}
+		}
+	if { $pwcount > 1 } {showErr "Access denied!"; set done 1}
+}
+#		"MToken"	{Send $channel "$ss_token \r"}
+Close $channel
+	
 .buttons.ok config -state normal	 
 }
 
 #####################################################################
-# Error
+# Error conditions (Expect errors can't have arguments
 #####################################################################
-proc showErr {} {
-	.status.label config -text "Login failed!"
+proc showErr {str_message} {
+	.status.label config -text [string range $str_message 0 35]
 	.buttons.ok config -state normal
 }
-
-
+proc showEOF {} {
+	set done 1
+	.status.label config -text "Unexpected Error!"
+	.buttons.ok config -state normal
+}
+proc showTimeout {} {
+	set done 1
+	.status.label config -text "Timeout!"
+	.buttons.ok config -state normal
+}
