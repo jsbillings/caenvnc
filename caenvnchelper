@@ -65,11 +65,7 @@ mkfifo ${FIFO}
 #trap 'echo Received SIGPIPE >&2' SIGPIPE
 
 
-if  [ "X$COTVNCDIR" = "X" ] ;then
-	ssh -g -f -L 5984:localhost:5984 ${mvnchost} "sleep 30"
-else
-	 ssh -g -f -L 5984:localhost:5984 ${mvnchost} "echo hello ;sleep 30"
-fi
+ssh -g -f -L 5984:localhost:5984 ${mvnchost} "echo hello ;sleep 30"
 
 (printf "CAENVNC\n${mydimen}\nCAENVNC\n" ;  nc -l localhost 5985  )  < ${FIFO} | nc localhost 5984  >${FIFO} &
 
