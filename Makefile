@@ -4,8 +4,9 @@ VERSION := $(shell cat VERSION)
 RELEASE := $(shell git describe --abbrev=4 HEAD 2>/dev/null | tr '-' '_')
 
 clean:
-	rm -rf debian
 	rm -rf rpmbuild
+
+debian: deb
 
 deb:	
 	cp -r packaging/debian ./
