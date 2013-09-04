@@ -14,10 +14,12 @@ deb:
 	fakeroot debian/rules
 	fakeroot debian/rules binary
 
-srpm:	
+make_rpm:
 	mkdir -p rpmbuild/SOURCES rpmbuild/SPECS
 	cp caenvnc caenvnchelper caenvnc.desktop rpmbuild/SOURCES
 	cp packaging/redhat/caenvnc.spec rpmbuild/SPECS
+
+srpm:	make_rpm
 	rpmbuild --define "caenvnc_version $(VERSION)" \
 	--define "caenvnc_release $(RELEASE)" \
 	--define "_topdir %(pwd)/rpmbuild" \
@@ -27,10 +29,7 @@ srpm:
 	--define "_sourcedir %{_topdir}/SOURCES" \
 	-bs rpmbuild/SPECS/caenvnc.spec
 
-rpm:	
-	mkdir -p rpmbuild/SOURCES rpmbuild/SPECS
-	cp caenvnc caenvnchelper caenvnc.desktop rpmbuild/SOURCES
-	cp packaging/redhat/caenvnc.spec rpmbuild/SPECS
+rpm:	make_rpm
 	rpmbuild --define "caenvnc_version $(VERSION)" \
 	--define "caenvnc_release $(RELEASE)" \
 	--define "_topdir %(pwd)/rpmbuild" \
