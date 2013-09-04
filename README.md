@@ -11,7 +11,7 @@ Debian/Ubuntu
     $ make clean
     $ make deb
 
-The package will appear in ..
+The package will appear in the current directory
 
 Redhat/Fedora
 
