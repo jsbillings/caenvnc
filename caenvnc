@@ -172,25 +172,21 @@ proc showScreen {ss_host ss_user ss_pass ss_token} {
     
     exp_spawn caenvnchelper -c $ss_host 
     
-    set times 0;
-    while { $times < 3 } {
-        expect {
-            "Are you sure*"         {exp_send "yes\r"}
-            "Enter your MToken Passcode:"   {exp_send "$ss_token\r"}
-            "hello*"                        {wm withdraw .;exp_wait; destroy .;exp_close;exit}
-        }
-        expect {
-            "$ss_user*:"             {exp_send "$ss_pass\r"}
-            "Password:"             {exp_send "$ss_pass\r"}
-            "hello*"                        {wm withdraw .;exp_wait; destroy .;exp_close;exit}
-        }
-        expect {
-            "Permission*"           {exp_close; showErr}
-            "hello*"                        {wm withdraw .;exp_wait; destroy .;exp_close;exit}
-            eof { }
-            timeout { puts "timeout waiting for response" ; close; exit }
-        }
-        set times [ expr $times+1 ];
+    expect {
+        "Are you sure*"         {exp_send "yes\r"}
+        "Enter your MToken Passcode:"   {exp_send "$ss_token\r"}
+        "hello*"                        {wm withdraw .;exp_wait; destroy .;exp_close;exit}
+    }
+    expect {
+        "$ss_user*:"             {exp_send "$ss_pass\r"}
+        "Password:"             {exp_send "$ss_pass\r"}
+        "hello*"                        {wm withdraw .;exp_wait; destroy .;exp_close;exit}
+    }
+    expect {
+        "Permission*"           {exp_close; showErr}
+        "hello*"                        {wm withdraw .;exp_wait; destroy .;exp_close;exit}
+        eof { }
+        timeout {exp_close; showErr "Incorrect password or token" }
     }
 }
 
