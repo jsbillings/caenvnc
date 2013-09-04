@@ -10,7 +10,7 @@ Source0:        caenvnc
 Source1:        caenvnchelper
 Source2:        caenvnc.desktop
 
-Requires:       tk, expect, vinagre, openssh-clients
+Requires:       tk, expect, vinagre, openssh-clients, nc
 BuildArch:	noarch
 
 %description
