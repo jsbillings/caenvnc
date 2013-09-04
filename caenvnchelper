@@ -35,23 +35,6 @@ cgeom=`xdpyinfo | grep dime | awk '{print $2}'`
 dimen=${CVNCSIZE:-${cgeom}}
 mydimen=${bgeom:-${dimen}}
 
-
-case $mydimen in
-      800x600)   rport=50;;
-     1024x768)  rport=51;;
-     1400x1050) rport=56;;
-     1600x1200) rport=53;;
-# resolutions 5:4
-     1280x1024) rport=52;;
-# resolutions 16:10
-     1280x800)  rport=57;;
-     1440x900)  rport=58;;
-     1680x1050) rport=54;;
-     1920x1200) rport=55;;
-     2560x1600) rport=59;; 
-     *) rport=51;;
-esac
-
 export CVNCHOST=${CVNCHOST:-"vnc.engin.umich.edu"}
 #echo $CVNCHOST
 mvnchost=${myhost:-${CVNCHOST}}
