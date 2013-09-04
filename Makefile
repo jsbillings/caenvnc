@@ -5,15 +5,15 @@ RELEASE := $(shell git describe --abbrev=4 HEAD 2>/dev/null | tr '-' '_')
 
 clean:
 	rm -rf rpmbuild
+	rm -rf debian caenvnc_*.deb
 
 debian: deb
 
 deb:	
-	cp -r packaging/debian ./
-	chmod 755 debian/rules
-	fakeroot debian/rules clean
-	fakeroot debian/rules
-	fakeroot debian/rules binary
+	mkdir -p debian
+	cp -r caenvnc* packaging/debian ./debian
+	chmod 755 debian/debian/rules
+	cd debian && fakeroot debian/rules binary
 
 make_rpm:
 	mkdir -p rpmbuild/SOURCES rpmbuild/SPECS
