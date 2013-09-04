@@ -1,18 +1,20 @@
-package provide app-sshnew 1.0
-package require registry
-package require Suspect
-suspect::Import
+#!/usr/bin/wish
 
 # 03/01/2008 - 1.0 - Limited Release [jhufnage]
 # 04/08/2008 - 1.1 - Added versioning information to the title bar [jhufnage]
 # 11/16/2009 - 1.2 - Enabled varable resolution [jhufnage]
 # 12/16/2009 - 2.0 - Wrapped using TclKit/StarKit
+# 04/16/2012 - 1.3 - Modified for RPM packaging
 # 05/17/2012 - 2.3 - Updated plink and added -batch command line option to plink
 # 09/19/2012 - 2.4 - Updated plink to portable plink 0.62 which properly supports "-ssh <hostname>"
 #					 and query WMI for DEP support
 # 01/14/2013 - 2.5 - Updated to Suspect (removed expect dependencies) for Windows 8 compatability
 #					 Removed DEP check since Expect is not used
 # 08/30/2013 - 3.0 - Added support for MToken and additional ECAD hosts
+# 09/04/2013 - 3.0 - Ported to Linux and Linux Packaging again.
+
+package provide app-sshnew 1.0
+package require Expect
 
 wm title . "CAEN VNC v3.0"
 wm iconname . "CAENVNC"
@@ -26,25 +28,6 @@ set v_password ""
 set v_token ""
 set v_hostname "vnc.engin.umich.edu"
 set scriptdir [file dirname [info script]]
-
-# Copy the executables to the users TEMP directory since Windows can't exec from VFS
-set tempdir [file join $::env(TEMP) caenvnc]
-if [file isfile $tempdir] {file delete -force $tempdir}
-file mkdir $tempdir
-
-catch {file copy -force ${scriptdir}/plink.exe ${tempdir}/plink.exe}
-catch {file copy -force ${scriptdir}/vncviewer.exe ${tempdir}/vncviewer.exe}
-catch {file copy -force ${scriptdir}/sshhostkeys ${tempdir}/sshhostkeys}
-
-#####################################################################
-# Configure VNCViewer default values
-#####################################################################
-if [ catch {registry get HKEY_CURRENT_USER\\Software\\RealVNC\\VNCViewer4 "AutoSelect" } ] {
-	registry set HKEY_CURRENT_USER\\Software\\RealVNC\\VNCViewer4 "AutoSelect" 1 dword
-}
-if [ catch {registry get HKEY_CURRENT_USER\\Software\\RealVNC\\VNCViewer4 "FullColour" } ]  {
-	registry set HKEY_CURRENT_USER\\Software\\RealVNC\\VNCViewer4 "FullColour" 1 dword
-}
 
 #####################################################################
 # Configure Hostname label and text box
@@ -150,84 +133,65 @@ wm geometry . +$wx+$wy
 #####################################################################
 proc showScreen {ss_host ss_user ss_pass ss_token} {
 
-global v_currentresh
-global v_currentresv
-global env
-global scriptdir
-global tempdir
-
-# Check for valid resolutions before continuing
-if { [string is integer -strict $v_currentresh] == 0 } {
+    global v_currentresh
+    global v_currentresv
+    global env
+    
+    # Check for valid resolutions before continuing
+    if { [string is integer -strict $v_currentresh] == 0 } {
 	.status.label config -text "Fix horizontal resolution!"
 	focus .screenres.comboboxh
 	return
-}
-if { [string is integer -strict $v_currentresv] == 0 } {
+    }
+    if { [string is integer -strict $v_currentresv] == 0 } {
 	.status.label config -text "Fix vertical resolution!"
 	focus .screenres.comboboxv
 	return
-}
+    }
+    
+    .buttons.ok config -state disabled
+    
+    set env(CAENVNCSIZE) ${v_currentresh}x${v_currentresv}
+    set env(CVNCSIZE) ${v_currentresh}x${v_currentresv}
+    set env(CAENVNCSIZE) ${v_currentresh}x${v_currentresv}
+    set rport   5984
+    set lport	5984
+    
+    # Screen resolution code
+    set fs "FullScreen=0"
+    if { [string compare "$v_currentresh" "[expr {[winfo screenwidth .]}]"] == 0 } { 
+        if { [string compare "$v_currentresv" "[expr {[winfo screenheight .]}]"] == 0 } {
+            set fs "FullScreen=1"
+        }
+    }
 
-.buttons.ok config -state disabled
 
-# Verify files exist (AV doesn't delete)
-if { [file exists ${tempdir}/plink.exe] == 0 } {
-	showErr "plink.exe not found in %TEMP%"
-	return
-}
-if { [file exists ${tempdir}/vncviewer.exe] == 0 } {
-	showErr "vncviewer.exe not found in %TEMP%"
-	return
-}
-if { [file exists $::env(WINDIR)/SYSTEM32/netstat.exe] == 0 } {
-	showErr "netstat.exe not found in $::env(WINDIR)/SYSTEM32"
-	return
-}
-
-set env(CAENVNCSIZE) ${v_currentresh}x${v_currentresv}
-set rport   5984
-set lport	5984
-
-# Screen resolution code
-set fs "FullScreen=0"
-if { [string compare "$v_currentresh" "[expr {[winfo screenwidth .]}]"] == 0 } { 
-   if { [string compare "$v_currentresv" "[expr {[winfo screenheight .]}]"] == 0 } {
-	set fs "FullScreen=1"
-   }
-}
-
-# Localport (lport) needs to be free.
-# Run netstat and increment through ports until free port found
-set nsr [exec "$::env(WINDIR)/SYSTEM32/netstat.exe" -an]
-while {[lsearch -regexp $nsr $lport] != -1} { set lport [expr {$lport + 1}] }
-
-# Show the user we're contacting the host
-.status.label config -text ""
-.status.label config -text [string range "Contacting $ss_host" 0 35]
-
-# Spawn and open a channel to plink
-set channel [Spawn ${tempdir}/plink.exe -L $lport:localhost:$rport -ssh $ss_host -C "echo hello\;cat" 2>@1]
-set pid [CVar $channel pid] 
-
-# Plink won't output errors to stdout so we have to work around 'hostname not found' and 'bad password' errors
-set pwcount 0
-set done 0
-while { $done == 0 } {
-	Expect $channel -regexp -onEOF showEOF -onTIMEOUT showTimeout { 
-		"Host"		{showErr "Hostname not found!"; set done 1}
-		"Store"  	{Send $channel "y\r" }
-		"login"  	{Send $channel "$ss_user \r"}
-		"MToken"	{Send $channel "$ss_token \r"}
-		"Password"  {Send $channel "$ss_pass \r"; set pwcount [expr {$pwcount + 1}]}
-		"password"  {Send $channel "$ss_pass \r"; set pwcount [expr {$pwcount + 1}]}
-		"hello"  	{wm withdraw .;exec  ${tempdir}/vncviewer.exe $fs FullColour=1 localhost::$lport; destroy .}
-		}
-	if { $pwcount > 1 } {showErr "Access denied!"; set done 1}
-}
-#		"MToken"	{Send $channel "$ss_token \r"}
-Close $channel
-	
-.buttons.ok config -state normal	 
+    # Show the user we're contacting the host
+    .status.label config -text ""
+    .status.label config -text [string range "Contacting $ss_host" 0 35]
+    
+    exp_spawn caenvnchelper -c $ss_host 
+    
+    set times 0;
+    while { $times < 3 } {
+        expect {
+            "Are you sure*"         {exp_send "yes\r"}
+            "Enter your MToken Passcode:"   {exp_send "$ss_token\r"}
+            "hello*"                        {wm withdraw .;exp_wait; destroy .;exp_close;exit}
+        }
+        expect {
+            "$ss_user*:"             {exp_send "$ss_pass\r"}
+            "Password:"             {exp_send "$ss_pass\r"}
+            "hello*"                        {wm withdraw .;exp_wait; destroy .;exp_close;exit}
+        }
+        expect {
+            "Permission*"           {exp_close; showErr}
+            "hello*"                        {wm withdraw .;exp_wait; destroy .;exp_close;exit}
+            eof { }
+            timeout { puts "timeout waiting for response" ; close; exit }
+        }
+        set times [ expr $times+1 ];
+    }
 }
 
 #####################################################################
