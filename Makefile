@@ -15,7 +15,7 @@ deb:	cp -r packaging/debian ./
 
 srpm:	
 	mkdir -p rpmbuild/SOURCES rpmbuild/SPECS
-	cp caenvnc caenvnchelper rpmbuild/SOURCES
+	cp caenvnc caenvnchelper caenvnc.desktop rpmbuild/SOURCES
 	cp packaging/redhat/caenvnc.spec rpmbuild/SPECS
 	rpmbuild --define "caenvnc_version $(VERSION)" \
 	--define "caenvnc_release $(RELEASE)" \
@@ -28,7 +28,7 @@ srpm:
 
 rpm:	
 	mkdir -p rpmbuild/SOURCES rpmbuild/SPECS
-	cp caenvnc caenvnchelper rpmbuild/SOURCES
+	cp caenvnc caenvnchelper caenvnc.desktop rpmbuild/SOURCES
 	cp packaging/redhat/caenvnc.spec rpmbuild/SPECS
 	rpmbuild --define "caenvnc_version $(VERSION)" \
 	--define "caenvnc_release $(RELEASE)" \

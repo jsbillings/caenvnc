@@ -1,0 +1,11 @@
+[Desktop Entry]
+Name=CAEN VNC
+Comment=Access remote CAEN workstation
+Keywords=VNC;RDP;SSH;
+Exec=caenvnc
+Icon=preferences-desktop-remote-desktop
+Terminal=false
+Type=Application
+StartupNotify=true
+Categories=GNOME;GTK;Network;RemoteAccess;
+X-Desktop-File-Install-Version=0.21
