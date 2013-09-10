@@ -6,14 +6,14 @@ The CAEN VNC client is a package that installs the 'caenvnc' script, along with 
 Building
 ========
 
-Debian/Ubuntu
+Debian/Ubuntu (.deb)
 
     $ make clean
     $ make deb
 
 The package will appear in the current directory
 
-Redhat/Fedora
+Redhat/Fedora (.rpm)
 
     $ make clean
     $ make rpm
