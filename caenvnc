@@ -64,7 +64,7 @@ pack   .password.entry -side left
 frame  .token -bd 2
 label  .token.label -text MToken: -width 10 -anchor w
 entry  .token.entry -relief sunken
-.token.entry config -textvariable v_token
+.token.entry config -textvariable v_token -show "*"
 pack   .token.label -side left
 pack   .token.entry -side left
 
