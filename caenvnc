@@ -12,21 +12,22 @@
 #					 Removed DEP check since Expect is not used
 # 08/30/2013 - 3.0 - Added support for MToken and additional ECAD hosts
 # 09/04/2013 - 3.0 - Ported to Linux and Linux Packaging again.
+# 12/18/2013 - 3.1 - Updated list of VNC servers to reflect naming change
 
 package provide app-sshnew 1.0
 package require Expect
 
-wm title . "CAEN VNC v3.0"
+wm title . "CAEN VNC v3.1"
 wm iconname . "CAENVNC"
 wm resizable . 0 0
 
-set URL "http://www.engin.umich.edu/caen/connect/vnc.html"
+set URL "http://caen.engin.umich.edu/connect/linux-login-service"
 set v_currentresh "[expr {[winfo screenwidth .]}]"
 set v_currentresv "[expr {[winfo screenheight .]}]"
-set v_username "$::env(USERNAME)"
+set v_username "$::env(USER)"
 set v_password ""
 set v_token ""
-set v_hostname "vnc.engin.umich.edu"
+set v_hostname "login-course.engin.umich.edu"
 set scriptdir [file dirname [info script]]
 
 #####################################################################
@@ -34,7 +35,7 @@ set scriptdir [file dirname [info script]]
 #####################################################################
 frame  .hostname -bd 2
 label  .hostname.label -text Hostname: -width 10 -anchor w
-ttk::combobox .hostname.combobox -textvariable v_hostname -values "vnc.engin.umich.edu vnc-twofactor.engin.umich.edu vnc-oncampus.engin.umich.edu" 
+ttk::combobox .hostname.combobox -textvariable v_hostname -values "login-course.engin.umich.edu restricted-course.engin.umich.edu oncampus-course.engin.umich.edu" 
 pack   .hostname.label -side left
 pack   .hostname.combobox  -side left
 
@@ -110,7 +111,7 @@ pack	.hostname .username .password .screenres .status .buttons -fill x
 ##
 proc showMToken {} {
 global v_hostname
-	if {[string match *twofactor* $v_hostname]} {
+	if {[string match *restricted* $v_hostname]} {
 		pack .token -after .password -fill x
 	} else {
 		pack forget .token
