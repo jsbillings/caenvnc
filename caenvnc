@@ -96,7 +96,7 @@ pack	.status.label -side left
 frame	.buttons -bd 2
 button	.buttons.ok -text "Connect" -borderwidth 1m -command "showScreen \$v_hostname \$v_username \$v_password \$v_token"
 button	.buttons.dismiss -text "Cancel" -command "destroy ."
-button	.buttons.help -text "Help" -command "exec [auto_execok start] {$URL}"
+button	.buttons.help -text "Help" -command "exec [auto_execok start] xdg-open {$URL}"
 bind	. <Return> ".buttons.ok invoke"
 bind	. <F1> ".buttons.help invoke"
 pack	.buttons.ok .buttons.dismiss .buttons.help -side left -expand 1
